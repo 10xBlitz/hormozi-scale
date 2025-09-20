@@ -3,6 +3,7 @@
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { ContactsDataTable } from '@/components/contacts-data-table'
 import { Building, Loader2, Mail, TrendingUp, Users } from 'lucide-react'
 import { useState } from 'react'
 
@@ -28,6 +29,7 @@ interface HubSpotContact {
 interface AnalysisResponse {
   success: boolean
   contactsCount?: number
+  totalContactsCount?: number
   contacts?: HubSpotContact[]
   analysis?: string
   error?: string
@@ -40,10 +42,12 @@ export function HubSpotContactsAnalyzer() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string>('')
   const [contactsCount, setContactsCount] = useState<number>(0)
+  const [totalContactsCount, setTotalContactsCount] = useState<number>(0)
 
   const fetchContacts = async (analyze: boolean = false) => {
     setIsLoading(true)
     setError('')
+    setContacts([]) // Clear existing contacts while loading
 
     try {
       const response = await fetch(`/api/hubspot/contacts?analyze=${analyze}`)
@@ -52,6 +56,7 @@ export function HubSpotContactsAnalyzer() {
       if (data.success) {
         setContacts(data.contacts || [])
         setContactsCount(data.contactsCount || 0)
+        setTotalContactsCount(data.totalContactsCount || 0)
 
         if (analyze && data.analysis) {
           setAnalysis(data.analysis)
@@ -98,6 +103,13 @@ export function HubSpotContactsAnalyzer() {
         <CardContent>
           <div className="flex gap-4">
             <Button
+              onClick={() => window.open('/api/auth/hubspot?action=login', '_self')}
+              variant="outline"
+              className="bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100"
+            >
+              Connect to HubSpot
+            </Button>
+            <Button
               onClick={() => fetchContacts(false)}
               disabled={isLoading}
               variant="outline"
@@ -128,18 +140,18 @@ export function HubSpotContactsAnalyzer() {
       )}
 
       {/* Contacts Count */}
-      {contactsCount > 0 && (
+      {totalContactsCount > 0 && (
         <Card>
           <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 flex-wrap">
               <div className="flex items-center gap-2">
                 <Users className="h-5 w-5 text-blue-600" />
-                <span className="text-lg font-semibold">{contactsCount}</span>
-                <span className="text-gray-600">total contacts</span>
+                <span className="text-lg font-semibold">{totalContactsCount.toLocaleString()}</span>
+                <span className="text-gray-600">total contacts in HubSpot</span>
               </div>
-              {contacts.length < contactsCount && (
-                <div className="text-sm text-gray-500">
-                  Showing first {contacts.length} contacts
+              {contactsCount > 0 && contactsCount < totalContactsCount && (
+                <div className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                  Showing {contactsCount.toLocaleString()} fetched contacts
                 </div>
               )}
             </div>
@@ -169,8 +181,11 @@ export function HubSpotContactsAnalyzer() {
         </Card>
       )}
 
-      {/* Contacts List */}
-      {contacts.length > 0 && (
+      {/* Contacts Data Table */}
+      <ContactsDataTable contacts={contacts} isLoading={isLoading} />
+
+      {/* Original Contacts List - Commented out, uncomment if you prefer this format */}
+      {/* {contacts.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle>Contact Preview</CardTitle>
@@ -221,7 +236,7 @@ export function HubSpotContactsAnalyzer() {
             </div>
           </CardContent>
         </Card>
-      )}
+      )} */}
 
       {/* Setup Instructions */}
       {!contacts.length && !error && (
