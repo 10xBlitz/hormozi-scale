@@ -33,7 +33,7 @@ interface OpenAIRequest {
 }
 
 const openai = new OpenAI({
-  apiKey: 'REMOVED_FOR_SECURITY',
+  apiKey: process.env.OPENAI_API_KEY,
 })
 
 // Simple rate limiting (in production, use Redis or similar)
