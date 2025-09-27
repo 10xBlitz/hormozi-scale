@@ -1,129 +1,154 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { Search, User, Building2, Phone, Mail, Calendar, Loader2 } from 'lucide-react'
+import { useState, useEffect } from "react";
+import {
+  Search,
+  User,
+  Building2,
+  Phone,
+  Mail,
+  Calendar,
+  Loader2,
+} from "lucide-react";
 
 interface HubSpotContact {
-  id: string
+  id: string;
   properties: {
-    email?: string
-    firstname?: string
-    lastname?: string
-    company?: string
-    phone?: string
-    website?: string
-    lifecyclestage?: string
-    createdate?: string
-    lastmodifieddate?: string
-  }
-  createdAt: string
-  updatedAt: string
-  archived: boolean
+    email?: string;
+    firstname?: string;
+    lastname?: string;
+    company?: string;
+    phone?: string;
+    website?: string;
+    lifecyclestage?: string;
+    createdate?: string;
+    lastmodifieddate?: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+  archived: boolean;
 }
 
 interface HubSpotContactsTableProps {
-  refreshKey: number
+  refreshKey: number;
 }
 
-export function HubSpotContactsTable({ refreshKey }: HubSpotContactsTableProps) {
-  const [contacts, setContacts] = useState<HubSpotContact[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [lifecycleFilter, setLifecycleFilter] = useState<string>('all')
-  const [totalContacts, setTotalContacts] = useState(0)
+export function HubSpotContactsTable({
+  refreshKey,
+}: HubSpotContactsTableProps) {
+  const [contacts, setContacts] = useState<HubSpotContact[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [lifecycleFilter, setLifecycleFilter] = useState<string>("all");
+  const [totalContacts, setTotalContacts] = useState(0);
 
   const fetchContacts = async () => {
     try {
-      setLoading(true)
-      setError(null)
+      setLoading(true);
+      setError(null);
 
-      const response = await fetch('/api/hubspot/contacts')
-      const data = await response.json()
+      const response = await fetch("/api/hubspot/contacts");
+      const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to fetch contacts')
+        throw new Error(data.error || "Failed to fetch contacts");
       }
 
       if (data.success) {
-        setContacts(data.contacts || [])
-        setTotalContacts(data.totalContactsCount || data.contactsCount || 0)
+        setContacts(data.contacts || []);
+        setTotalContacts(data.totalContactsCount || data.contactsCount || 0);
       } else {
-        throw new Error(data.error || 'Failed to fetch contacts')
+        throw new Error(data.error || "Failed to fetch contacts");
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
-      setContacts([])
+      setError(err instanceof Error ? err.message : "An error occurred");
+      setContacts([]);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
-    fetchContacts()
-  }, [refreshKey])
+    fetchContacts();
+  }, [refreshKey]);
 
   const formatDate = (dateString?: string) => {
-    if (!dateString) return 'N/A'
+    if (!dateString) return "N/A";
 
     try {
-      const date = new Date(dateString)
-      return date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      })
+      const date = new Date(dateString);
+      return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      });
     } catch {
-      return 'Invalid Date'
+      return "Invalid Date";
     }
-  }
+  };
 
   const getLifecycleStageColor = (stage?: string) => {
     const colors: Record<string, string> = {
-      'subscriber': 'bg-blue-100 text-blue-800',
-      'lead': 'bg-yellow-100 text-yellow-800',
-      'marketingqualifiedlead': 'bg-orange-100 text-orange-800',
-      'salesqualifiedlead': 'bg-purple-100 text-purple-800',
-      'opportunity': 'bg-green-100 text-green-800',
-      'customer': 'bg-emerald-100 text-emerald-800',
-      'evangelist': 'bg-pink-100 text-pink-800'
-    }
+      subscriber: "bg-blue-100 text-blue-800",
+      lead: "bg-yellow-100 text-yellow-800",
+      marketingqualifiedlead: "bg-orange-100 text-orange-800",
+      salesqualifiedlead: "bg-purple-100 text-purple-800",
+      opportunity: "bg-green-100 text-green-800",
+      customer: "bg-emerald-100 text-emerald-800",
+      evangelist: "bg-pink-100 text-pink-800",
+    };
 
-    const normalizedStage = stage?.toLowerCase() || 'unknown'
-    return colors[normalizedStage] || 'bg-gray-100 text-gray-800'
-  }
+    const normalizedStage = stage?.toLowerCase() || "unknown";
+    return colors[normalizedStage] || "bg-gray-100 text-gray-800";
+  };
 
   const getLifecycleStageLabel = (stage?: string) => {
     const labels: Record<string, string> = {
-      'subscriber': 'Subscriber',
-      'lead': 'Lead',
-      'marketingqualifiedlead': 'MQL',
-      'salesqualifiedlead': 'SQL',
-      'opportunity': 'Opportunity',
-      'customer': 'Customer',
-      'evangelist': 'Evangelist'
-    }
+      subscriber: "Subscriber",
+      lead: "Lead",
+      marketingqualifiedlead: "MQL",
+      salesqualifiedlead: "SQL",
+      opportunity: "Opportunity",
+      customer: "Customer",
+      evangelist: "Evangelist",
+    };
 
-    const normalizedStage = stage?.toLowerCase() || 'unknown'
-    return labels[normalizedStage] || stage || 'Unknown'
-  }
+    const normalizedStage = stage?.toLowerCase() || "unknown";
+    return labels[normalizedStage] || stage || "Unknown";
+  };
 
-  const filteredContacts = contacts.filter(contact => {
-    const matchesSearch = !searchTerm ||
-      contact.properties.firstname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      contact.properties.lastname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      contact.properties.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      contact.properties.company?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredContacts = contacts.filter((contact) => {
+    const matchesSearch =
+      !searchTerm ||
+      contact.properties.firstname
+        ?.toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      contact.properties.lastname
+        ?.toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      contact.properties.email
+        ?.toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      contact.properties.company
+        ?.toLowerCase()
+        .includes(searchTerm.toLowerCase());
 
-    const matchesLifecycle = lifecycleFilter === 'all' ||
-      contact.properties.lifecyclestage?.toLowerCase() === lifecycleFilter.toLowerCase()
+    const matchesLifecycle =
+      lifecycleFilter === "all" ||
+      contact.properties.lifecyclestage?.toLowerCase() ===
+        lifecycleFilter.toLowerCase();
 
-    return matchesSearch && matchesLifecycle
-  })
+    return matchesSearch && matchesLifecycle;
+  });
 
   const uniqueLifecycleStages = Array.from(
-    new Set(contacts.map(contact => contact.properties.lifecyclestage).filter(Boolean))
-  )
+    new Set(
+      contacts
+        .map((contact) => contact.properties.lifecyclestage)
+        .filter(Boolean)
+    )
+  );
 
   if (loading) {
     return (
@@ -133,14 +158,16 @@ export function HubSpotContactsTable({ refreshKey }: HubSpotContactsTableProps) 
           <span className="ml-2 text-gray-600">Loading contacts...</span>
         </div>
       </div>
-    )
+    );
   }
 
   if (error) {
     return (
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <div className="text-center">
-          <div className="text-red-600 font-medium mb-2">Error Loading Contacts</div>
+          <div className="text-red-600 font-medium mb-2">
+            Error Loading Contacts
+          </div>
           <div className="text-gray-600 text-sm mb-4">{error}</div>
           <button
             onClick={fetchContacts}
@@ -150,7 +177,7 @@ export function HubSpotContactsTable({ refreshKey }: HubSpotContactsTableProps) 
           </button>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -181,7 +208,7 @@ export function HubSpotContactsTable({ refreshKey }: HubSpotContactsTableProps) 
             className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
           >
             <option value="all">All Stages</option>
-            {uniqueLifecycleStages.map(stage => (
+            {uniqueLifecycleStages.map((stage) => (
               <option key={stage} value={stage}>
                 {getLifecycleStageLabel(stage)}
               </option>
@@ -219,7 +246,9 @@ export function HubSpotContactsTable({ refreshKey }: HubSpotContactsTableProps) 
             {filteredContacts.length === 0 ? (
               <tr>
                 <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
-                  {contacts.length === 0 ? 'No contacts found' : 'No contacts match your filters'}
+                  {contacts.length === 0
+                    ? "No contacts found"
+                    : "No contacts match your filters"}
                 </td>
               </tr>
             ) : (
@@ -234,7 +263,9 @@ export function HubSpotContactsTable({ refreshKey }: HubSpotContactsTableProps) 
                       </div>
                       <div className="ml-3">
                         <div className="text-sm font-medium text-gray-900">
-                          {`${contact.properties.firstname || ''} ${contact.properties.lastname || ''}`.trim() || 'N/A'}
+                          {`${contact.properties.firstname || ""} ${
+                            contact.properties.lastname || ""
+                          }`.trim() || "N/A"}
                         </div>
                         <div className="text-sm text-gray-500">
                           ID: {contact.id}
@@ -246,7 +277,7 @@ export function HubSpotContactsTable({ refreshKey }: HubSpotContactsTableProps) 
                     <div className="flex items-center">
                       <Building2 className="h-4 w-4 text-gray-400 mr-2" />
                       <span className="text-sm text-gray-900">
-                        {contact.properties.company || 'N/A'}
+                        {contact.properties.company || "N/A"}
                       </span>
                     </div>
                   </td>
@@ -267,8 +298,14 @@ export function HubSpotContactsTable({ refreshKey }: HubSpotContactsTableProps) 
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getLifecycleStageColor(contact.properties.lifecyclestage)}`}>
-                      {getLifecycleStageLabel(contact.properties.lifecyclestage)}
+                    <span
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getLifecycleStageColor(
+                        contact.properties.lifecyclestage
+                      )}`}
+                    >
+                      {getLifecycleStageLabel(
+                        contact.properties.lifecyclestage
+                      )}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -290,5 +327,5 @@ export function HubSpotContactsTable({ refreshKey }: HubSpotContactsTableProps) 
         </table>
       </div>
     </div>
-  )
+  );
 }
