@@ -62,8 +62,8 @@ async function fetchHubSpotContactsPage(limit: number = 100, after?: string, acc
     throw new Error('HubSpot API key or access token not configured')
   }
 
-  // Build URL with pagination - added closedate for sales conversion tracking
-  const baseUrl = `https://api.hubapi.com/crm/v3/objects/contacts?limit=${limit}&properties=email,firstname,lastname,company,phone,website,lifecyclestage,hs_lead_status,createdate,lastmodifieddate,closedate`
+  // Build URL with pagination and sorting by last modified date (most recent first)
+  const baseUrl = `https://api.hubapi.com/crm/v3/objects/contacts?limit=${limit}&properties=email,firstname,lastname,company,phone,website,lifecyclestage,hs_lead_status,createdate,lastmodifieddate,closedate&sorts=-lastmodifieddate`
   const afterParam = after ? `&after=${after}` : ''
 
   // Try multiple authentication methods

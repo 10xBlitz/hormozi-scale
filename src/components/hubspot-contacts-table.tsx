@@ -9,6 +9,8 @@ import {
   Mail,
   Calendar,
   Loader2,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 
 interface HubSpotContact {
@@ -45,6 +47,8 @@ export function HubSpotContactsTable({
   const [searchTerm, setSearchTerm] = useState("");
   const [lifecycleFilter, setLifecycleFilter] = useState<string>("all");
   const [totalContacts, setTotalContacts] = useState(0);
+  const [sortField, setSortField] = useState<string>("hs_lead_status");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
   const fetchContacts = async () => {
     try {
@@ -127,65 +131,185 @@ export function HubSpotContactsTable({
 
   const getLeadStatusColor = (status?: string) => {
     const colors: Record<string, string> = {
-      'new': 'bg-blue-100 text-blue-800',
-      'open': 'bg-green-100 text-green-800',
-      'in_progress': 'bg-yellow-100 text-yellow-800',
-      'open_deal': 'bg-purple-100 text-purple-800',
-      'unqualified': 'bg-red-100 text-red-800',
-      'attempted_to_contact': 'bg-orange-100 text-orange-800',
-      'connected': 'bg-emerald-100 text-emerald-800',
-      'bad_timing': 'bg-gray-100 text-gray-800',
+      new: "bg-blue-100 text-blue-800",
+      open: "bg-green-100 text-green-800",
+      in_progress: "bg-yellow-100 text-yellow-800",
+      open_deal: "bg-purple-100 text-purple-800",
+      unqualified: "bg-red-100 text-red-800",
+      attempted_to_contact: "bg-orange-100 text-orange-800",
+      connected: "bg-emerald-100 text-emerald-800",
+      bad_timing: "bg-gray-100 text-gray-800",
     };
 
-    const normalizedStatus = status?.toLowerCase().replace(/\s/g, '_') || 'unknown';
-    return colors[normalizedStatus] || 'bg-gray-100 text-gray-800';
+    const normalizedStatus =
+      status?.toLowerCase().replace(/\s/g, "_") || "unknown";
+    return colors[normalizedStatus] || "bg-gray-100 text-gray-800";
   };
 
   const getLeadStatusLabel = (status?: string) => {
     const labels: Record<string, string> = {
-      'new': 'New',
-      'open': 'Open',
-      'in_progress': 'In Progress',
-      'open_deal': 'Open Deal',
-      'unqualified': 'Unqualified',
-      'attempted_to_contact': 'Attempted to Contact',
-      'connected': 'Connected',
-      'bad_timing': 'Bad Timing',
+      new: "New",
+      open: "Open",
+      in_progress: "In Progress",
+      open_deal: "Open Deal",
+      unqualified: "Unqualified",
+      attempted_to_contact: "Attempted to Contact",
+      connected: "Connected",
+      bad_timing: "Bad Timing",
     };
 
-    const normalizedStatus = status?.toLowerCase().replace(/\s/g, '_') || 'unknown';
-    return labels[normalizedStatus] || status || 'Unknown';
+    const normalizedStatus =
+      status?.toLowerCase().replace(/\s/g, "_") || "unknown";
+    return labels[normalizedStatus] || status || "Unknown";
   };
 
-  const filteredContacts = contacts.filter((contact) => {
-    const matchesSearch =
-      !searchTerm ||
-      contact.properties.firstname
-        ?.toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      contact.properties.lastname
-        ?.toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      contact.properties.email
-        ?.toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      contact.properties.company
-        ?.toLowerCase()
-        .includes(searchTerm.toLowerCase());
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection("desc");
+    }
+  };
 
-    const matchesLifecycle =
-      lifecycleFilter === "all" ||
-      (contact.properties.lifecyclestage || "Unknown").toLowerCase() ===
-        lifecycleFilter.toLowerCase();
+  const sortContacts = (contactsToSort: HubSpotContact[]) => {
+    return [...contactsToSort].sort((a, b) => {
+      // For default sorting (lead status), always do combined sort by lead status + last modified
+      if (sortField === "hs_lead_status") {
+        // Primary sort: Lead Status
+        const leadStatusOrder = {
+          bad_timing: 1,
+          "bad timing": 1,
+          connected: 2,
+          attempted_to_contact: 3,
+          "attempted to contact": 3,
+          unqualified: 4,
+          in_progress: 5,
+          "in progress": 5,
+        };
+        const aStatus = (a.properties.hs_lead_status || "")
+          .toLowerCase()
+          .replace(/\s/g, "_");
+        const bStatus = (b.properties.hs_lead_status || "")
+          .toLowerCase()
+          .replace(/\s/g, "_");
+        const aStatusValue =
+          leadStatusOrder[aStatus as keyof typeof leadStatusOrder] || 999;
+        const bStatusValue =
+          leadStatusOrder[bStatus as keyof typeof leadStatusOrder] || 999;
 
-    return matchesSearch && matchesLifecycle;
-  });
+        // If lead status is different, sort by lead status
+        if (aStatusValue !== bStatusValue) {
+          return sortDirection === "asc"
+            ? aStatusValue - bStatusValue
+            : bStatusValue - aStatusValue;
+        }
+
+        // If lead status is the same, sort by last modified date (most recent first)
+        const aModified = new Date(
+          a.properties.lastmodifieddate || 0
+        ).getTime();
+        const bModified = new Date(
+          b.properties.lastmodifieddate || 0
+        ).getTime();
+
+        if (aModified !== bModified) {
+          return bModified - aModified; // Most recent first
+        }
+
+        // If both lead status and last modified are the same, sort by contact ID
+        return a.id.localeCompare(b.id);
+      }
+
+      // For other columns, use standard sorting
+      let aValue: string | number;
+      let bValue: string | number;
+
+      switch (sortField) {
+        case "name":
+          aValue = `${a.properties.firstname || ""} ${
+            a.properties.lastname || ""
+          }`
+            .trim()
+            .toLowerCase();
+          bValue = `${b.properties.firstname || ""} ${
+            b.properties.lastname || ""
+          }`
+            .trim()
+            .toLowerCase();
+          break;
+        case "company":
+          aValue = (a.properties.company || "").toLowerCase();
+          bValue = (b.properties.company || "").toLowerCase();
+          break;
+        case "email":
+          aValue = (a.properties.email || "").toLowerCase();
+          bValue = (b.properties.email || "").toLowerCase();
+          break;
+        case "lifecyclestage":
+          aValue = (a.properties.lifecyclestage || "").toLowerCase();
+          bValue = (b.properties.lifecyclestage || "").toLowerCase();
+          break;
+        case "createdate":
+          aValue = new Date(a.properties.createdate || 0).getTime();
+          bValue = new Date(b.properties.createdate || 0).getTime();
+          break;
+        case "lastmodifieddate":
+          aValue = new Date(a.properties.lastmodifieddate || 0).getTime();
+          bValue = new Date(b.properties.lastmodifieddate || 0).getTime();
+          break;
+        default:
+          return 0;
+      }
+
+      if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
+      if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
+      return 0;
+    });
+  };
+
+  const filteredAndSortedContacts = sortContacts(
+    contacts.filter((contact) => {
+      const matchesSearch =
+        !searchTerm ||
+        contact.properties.firstname
+          ?.toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        contact.properties.lastname
+          ?.toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        contact.properties.email
+          ?.toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        contact.properties.company
+          ?.toLowerCase()
+          .includes(searchTerm.toLowerCase());
+
+      const matchesLifecycle =
+        lifecycleFilter === "all" ||
+        (contact.properties.lifecyclestage || "Unknown").toLowerCase() ===
+          lifecycleFilter.toLowerCase();
+
+      return matchesSearch && matchesLifecycle;
+    })
+  );
 
   const uniqueLifecycleStages = Array.from(
     new Set(
       contacts.map((contact) => contact.properties.lifecyclestage || "Unknown")
     )
   );
+
+  const getSortIcon = (field: string) => {
+    if (sortField !== field) {
+      return <ChevronDown className="h-4 w-4 text-gray-400" />;
+    }
+    return sortDirection === "asc" ? (
+      <ChevronUp className="h-4 w-4 text-gray-600" />
+    ) : (
+      <ChevronDown className="h-4 w-4 text-gray-600" />
+    );
+  };
 
   if (loading) {
     return (
@@ -223,7 +347,8 @@ export function HubSpotContactsTable({
       <div className="px-6 py-4 border-b border-gray-200">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-gray-900">
-            HubSpot Contacts ({filteredContacts.length} of {totalContacts})
+            HubSpot Contacts ({filteredAndSortedContacts.length} of{" "}
+            {totalContacts})
           </h2>
         </div>
 
@@ -259,31 +384,73 @@ export function HubSpotContactsTable({
         <table className="w-full">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Contact
+              <th
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 select-none"
+                onClick={() => handleSort("name")}
+              >
+                <div className="flex items-center space-x-1">
+                  <span>Contact</span>
+                  {getSortIcon("name")}
+                </div>
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Company
+              <th
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 select-none"
+                onClick={() => handleSort("company")}
+              >
+                <div className="flex items-center space-x-1">
+                  <span>Company</span>
+                  {getSortIcon("company")}
+                </div>
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Contact Info
+              <th
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 select-none"
+                onClick={() => handleSort("email")}
+              >
+                <div className="flex items-center space-x-1">
+                  <span>Contact Info</span>
+                  {getSortIcon("email")}
+                </div>
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Lifecycle Stage
+              <th
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 select-none"
+                onClick={() => handleSort("lifecyclestage")}
+              >
+                <div className="flex items-center space-x-1">
+                  <span>Lifecycle Stage</span>
+                  {getSortIcon("lifecyclestage")}
+                </div>
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Lead Status
+              <th
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 select-none"
+                onClick={() => handleSort("hs_lead_status")}
+              >
+                <div className="flex items-center space-x-1">
+                  <span>Lead Status</span>
+                  {getSortIcon("hs_lead_status")}
+                </div>
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Created
+              <th
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 select-none"
+                onClick={() => handleSort("createdate")}
+              >
+                <div className="flex items-center space-x-1">
+                  <span>Created</span>
+                  {getSortIcon("createdate")}
+                </div>
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Last Modified
+              <th
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 select-none"
+                onClick={() => handleSort("lastmodifieddate")}
+              >
+                <div className="flex items-center space-x-1">
+                  <span>Last Modified</span>
+                  {getSortIcon("lastmodifieddate")}
+                </div>
               </th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {filteredContacts.length === 0 ? (
+            {filteredAndSortedContacts.length === 0 ? (
               <tr>
                 <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
                   {contacts.length === 0
@@ -292,7 +459,7 @@ export function HubSpotContactsTable({
                 </td>
               </tr>
             ) : (
-              filteredContacts.map((contact) => (
+              filteredAndSortedContacts.map((contact) => (
                 <tr key={contact.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
@@ -354,9 +521,7 @@ export function HubSpotContactsTable({
                         contact.properties.hs_lead_status
                       )}`}
                     >
-                      {getLeadStatusLabel(
-                        contact.properties.hs_lead_status
-                      )}
+                      {getLeadStatusLabel(contact.properties.hs_lead_status)}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
