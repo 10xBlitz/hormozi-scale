@@ -32,10 +32,12 @@ interface HubSpotContact {
 
 interface HubSpotContactsTableProps {
   refreshKey: number;
+  onLoadingChange?: (loading: boolean) => void;
 }
 
 export function HubSpotContactsTable({
   refreshKey,
+  onLoadingChange,
 }: HubSpotContactsTableProps) {
   const [contacts, setContacts] = useState<HubSpotContact[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,6 +75,10 @@ export function HubSpotContactsTable({
   useEffect(() => {
     fetchContacts();
   }, [refreshKey]);
+
+  useEffect(() => {
+    onLoadingChange?.(loading);
+  }, [loading, onLoadingChange]);
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return "N/A";

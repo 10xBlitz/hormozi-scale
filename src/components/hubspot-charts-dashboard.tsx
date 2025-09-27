@@ -16,7 +16,7 @@ import {
   LineChart,
   Line,
 } from "recharts";
-import { Loader2, BarChart3 } from "lucide-react";
+import { BarChart3 } from "lucide-react";
 
 interface HubSpotContact {
   id: string;
@@ -39,6 +39,7 @@ interface HubSpotContact {
 
 interface HubSpotChartsProps {
   refreshKey: number;
+  onLoadingChange?: (loading: boolean) => void;
 }
 
 const LIFECYCLE_COLORS = [
@@ -52,7 +53,7 @@ const LIFECYCLE_COLORS = [
   "#6B7280", // Gray
 ];
 
-export function HubSpotChartsDashboard({ refreshKey }: HubSpotChartsProps) {
+export function HubSpotChartsDashboard({ refreshKey, onLoadingChange }: HubSpotChartsProps) {
   const [contacts, setContacts] = useState<HubSpotContact[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -86,6 +87,10 @@ export function HubSpotChartsDashboard({ refreshKey }: HubSpotChartsProps) {
   useEffect(() => {
     fetchContacts();
   }, [refreshKey]);
+
+  useEffect(() => {
+    onLoadingChange?.(loading);
+  }, [loading, onLoadingChange]);
 
   const getLifecycleStageLabel = (stage?: string) => {
     const labels: Record<string, string> = {
@@ -290,16 +295,6 @@ export function HubSpotChartsDashboard({ refreshKey }: HubSpotChartsProps) {
     }));
   })();
 
-  if (loading) {
-    return (
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
-        <div className="flex items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-orange-600" />
-          <span className="ml-2 text-gray-600">Loading charts...</span>
-        </div>
-      </div>
-    );
-  }
 
   if (error) {
     return (

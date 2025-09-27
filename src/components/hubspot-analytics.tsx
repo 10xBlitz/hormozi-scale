@@ -8,7 +8,6 @@ import {
   Target,
   Clock,
   CalendarDays,
-  Loader2,
 } from "lucide-react";
 
 interface HubSpotContact {
@@ -33,6 +32,7 @@ interface HubSpotContact {
 
 interface HubSpotAnalyticsProps {
   refreshKey: number;
+  onLoadingChange?: (loading: boolean) => void;
 }
 
 interface AnalyticsData {
@@ -51,7 +51,7 @@ interface AnalyticsData {
   conversionRate: number;
 }
 
-export function HubSpotAnalytics({ refreshKey }: HubSpotAnalyticsProps) {
+export function HubSpotAnalytics({ refreshKey, onLoadingChange }: HubSpotAnalyticsProps) {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -145,21 +145,32 @@ export function HubSpotAnalytics({ refreshKey }: HubSpotAnalyticsProps) {
         // Count sales conversions (leads that became sales qualified leads)
         const salesConversions = contacts.filter(
           (contact) =>
-            contact.properties.lifecyclestage?.toLowerCase() === "salesqualifiedlead"
+            contact.properties.lifecyclestage?.toLowerCase() ===
+            "salesqualifiedlead"
         ).length;
 
         // Count sales by time period (this month and week)
         const salesThisMonth = contacts.filter((contact) => {
-          if (contact.properties.lifecyclestage?.toLowerCase() !== "salesqualifiedlead")
+          if (
+            contact.properties.lifecyclestage?.toLowerCase() !==
+            "salesqualifiedlead"
+          )
             return false;
-          const createDate = new Date(contact.properties.createdate || contact.createdAt);
+          const createDate = new Date(
+            contact.properties.createdate || contact.createdAt
+          );
           return createDate >= thisMonthStart;
         }).length;
 
         const salesThisWeek = contacts.filter((contact) => {
-          if (contact.properties.lifecyclestage?.toLowerCase() !== "salesqualifiedlead")
+          if (
+            contact.properties.lifecyclestage?.toLowerCase() !==
+            "salesqualifiedlead"
+          )
             return false;
-          const createDate = new Date(contact.properties.createdate || contact.createdAt);
+          const createDate = new Date(
+            contact.properties.createdate || contact.createdAt
+          );
           return createDate >= thisWeekStart;
         }).length;
 
@@ -167,9 +178,11 @@ export function HubSpotAnalytics({ refreshKey }: HubSpotAnalyticsProps) {
         const totalLeadsEver = contacts.filter(
           (contact) =>
             contact.properties.lifecyclestage?.toLowerCase() === "lead" ||
-            contact.properties.lifecyclestage?.toLowerCase() === "salesqualifiedlead"
+            contact.properties.lifecyclestage?.toLowerCase() ===
+              "salesqualifiedlead"
         ).length;
-        const conversionRate = totalLeadsEver > 0 ? (salesConversions / totalLeadsEver) * 100 : 0;
+        const conversionRate =
+          totalLeadsEver > 0 ? (salesConversions / totalLeadsEver) * 100 : 0;
 
         setData({
           totalContacts:
@@ -192,6 +205,7 @@ export function HubSpotAnalytics({ refreshKey }: HubSpotAnalyticsProps) {
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
+      setData(null);
     } finally {
       setLoading(false);
     }
@@ -201,16 +215,10 @@ export function HubSpotAnalytics({ refreshKey }: HubSpotAnalyticsProps) {
     fetchAnalytics();
   }, [refreshKey]);
 
-  if (loading) {
-    return (
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
-        <div className="flex items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-orange-600" />
-          <span className="ml-2 text-gray-600">Loading analytics...</span>
-        </div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    onLoadingChange?.(loading);
+  }, [loading, onLoadingChange]);
+
 
   if (error) {
     return (
@@ -259,9 +267,7 @@ export function HubSpotAnalytics({ refreshKey }: HubSpotAnalyticsProps) {
               <Target className="h-8 w-8 text-emerald-600" />
             </div>
             <div className="ml-3">
-              <p className="text-sm font-medium text-gray-500">
-                Total Sales
-              </p>
+              <p className="text-sm font-medium text-gray-500">Total Sales</p>
               <p className="text-2xl font-semibold text-gray-900">
                 {data.salesConversions}
               </p>
@@ -467,7 +473,10 @@ export function HubSpotAnalytics({ refreshKey }: HubSpotAnalyticsProps) {
                 <span className="font-medium text-gray-900">
                   {(() => {
                     const weeksInMonth = Math.ceil(new Date().getDate() / 7);
-                    const avgWeekly = data.salesThisMonth > 0 ? data.salesThisMonth / weeksInMonth : 0;
+                    const avgWeekly =
+                      data.salesThisMonth > 0
+                        ? data.salesThisMonth / weeksInMonth
+                        : 0;
                     return avgWeekly.toFixed(1);
                   })()}{" "}
                   sales/week
@@ -476,7 +485,8 @@ export function HubSpotAnalytics({ refreshKey }: HubSpotAnalyticsProps) {
               <div>
                 <span>Monthly Goal Progress: </span>
                 <span className="font-medium text-gray-900">
-                  {data.salesThisMonth} / {Math.max(10, data.salesThisMonth)} sales
+                  {data.salesThisMonth} / {Math.max(10, data.salesThisMonth)}{" "}
+                  sales
                 </span>
               </div>
             </div>
