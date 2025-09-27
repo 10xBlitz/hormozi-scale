@@ -167,7 +167,7 @@ export const UserStoreProvider = ({ children }: { children: ReactNode }) => {
       authListener.subscription.unsubscribe();
       mounted = false;
     };
-  }, []);
+  }, [supabaseClient.auth]);
 
   // Render children only after the store is initialized
   if (!isStoreInitialized || !storeRef.current) {

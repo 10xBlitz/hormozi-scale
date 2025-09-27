@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Brain,
   Loader2,
@@ -24,6 +24,13 @@ export function HubSpotAIAnalysis({ refreshKey }: HubSpotAIAnalysisProps) {
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Reset analysis when refreshKey changes
+  useEffect(() => {
+    if (refreshKey !== undefined) {
+      setAnalysis(null);
+    }
+  }, [refreshKey]);
 
   const generateAnalysis = async () => {
     try {
@@ -105,7 +112,7 @@ export function HubSpotAIAnalysis({ refreshKey }: HubSpotAIAnalysisProps) {
         <div className="text-center py-8 text-gray-500">
           <Brain className="h-12 w-12 mx-auto mb-3 text-gray-300" />
           <p>
-            Click "Generate Analysis" to get AI-powered insights about your
+            Click &ldquo;Generate Analysis&rdquo; to get AI-powered insights about your
             HubSpot contacts
           </p>
           <p className="text-xs mt-2">

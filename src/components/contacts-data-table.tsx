@@ -26,7 +26,6 @@ import {
   Download,
   Users,
   Calendar,
-  MapPin,
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
@@ -49,7 +48,7 @@ interface ContactData {
     lifecyclestage?: string
     createdate?: string
     lastmodifieddate?: string
-    [key: string]: any
+    [key: string]: string | undefined
   }
 }
 
@@ -71,7 +70,7 @@ export function ContactsDataTable({ contacts, isLoading }: ContactsDataTableProp
 
   // Filter and sort contacts based on search, status, and sorting
   const filteredContacts = useMemo(() => {
-    let filtered = contacts.filter(contact => {
+    const filtered = contacts.filter(contact => {
       const matchesSearch =
         contact.properties.firstname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         contact.properties.lastname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -597,7 +596,7 @@ export function ContactsDataTable({ contacts, isLoading }: ContactsDataTableProp
           <div className="text-center py-8">
             <Search className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-600">
-              No contacts found matching "{searchTerm}"
+              No contacts found matching &ldquo;{searchTerm}&rdquo;
             </p>
             <Button
               variant="outline"

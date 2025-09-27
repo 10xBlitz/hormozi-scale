@@ -1,8 +1,8 @@
 'use client'
 
+import React, { useState } from 'react'
 import { getActionableSteps } from '@/lib/openai-utils'
 import { ActionPlan, actionPlanService } from '@/lib/supabase/action-plans'
-import { useState } from 'react'
 
 interface BusinessAreaAdvisorProps {
   stage: string
@@ -32,7 +32,7 @@ const BUSINESS_AREA_COLORS = {
 // Helper function to render structured action content
 function renderStructuredAction(actionText: string) {
   const lines = actionText.split('\n\n')
-  const sections: JSX.Element[] = []
+  const sections: React.ReactElement[] = []
 
   for (const line of lines) {
     if (line.startsWith('**') && line.includes('**')) {

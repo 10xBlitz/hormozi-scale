@@ -1,10 +1,9 @@
 'use client'
 
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ContactsDataTable } from '@/components/contacts-data-table'
-import { Building, Loader2, Mail, TrendingUp, Users } from 'lucide-react'
+import { Loader2, TrendingUp, Users } from 'lucide-react'
 import { useState } from 'react'
 
 interface HubSpotContact {
@@ -19,7 +18,7 @@ interface HubSpotContact {
     lifecyclestage?: string
     createdate?: string
     lastmodifieddate?: string
-    [key: string]: any
+    [key: string]: string | undefined
   }
   createdAt: string
   updatedAt: string
@@ -71,21 +70,6 @@ export function HubSpotContactsAnalyzer() {
     }
   }
 
-  const getLifecycleBadgeColor = (stage?: string) => {
-    switch (stage?.toLowerCase()) {
-      case 'customer': return 'bg-green-100 text-green-800'
-      case 'lead': return 'bg-blue-100 text-blue-800'
-      case 'marketingqualifiedlead': return 'bg-yellow-100 text-yellow-800'
-      case 'salesqualifiedlead': return 'bg-orange-100 text-orange-800'
-      case 'subscriber': return 'bg-purple-100 text-purple-800'
-      default: return 'bg-gray-100 text-gray-800'
-    }
-  }
-
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return 'N/A'
-    return new Date(dateString).toLocaleDateString()
-  }
 
   return (
     <div className="space-y-6">

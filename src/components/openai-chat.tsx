@@ -40,7 +40,7 @@ export function OpenAIChat() {
         {messages.length === 0 ? (
           <div className="text-center text-gray-500 py-8">
             <p>Ask me anything about scaling your business!</p>
-            <p className="text-sm mt-2">Try: "How do I improve my marketing in Stage 2?"</p>
+            <p className="text-sm mt-2">Try: &ldquo;How do I improve my marketing in Stage 2?&rdquo;</p>
           </div>
         ) : (
           messages.map((message, index) => (
