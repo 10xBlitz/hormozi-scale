@@ -12,6 +12,7 @@ interface HubSpotContact {
     phone?: string
     website?: string
     lifecyclestage?: string
+    hs_lead_status?: string
     createdate?: string
     lastmodifieddate?: string
     [key: string]: string | undefined
@@ -61,7 +62,7 @@ async function fetchHubSpotContactsPage(limit: number = 100, after?: string, acc
   }
 
   // Build URL with pagination
-  const baseUrl = `https://api.hubapi.com/crm/v3/objects/contacts?limit=${limit}&properties=email,firstname,lastname,company,phone,website,lifecyclestage,createdate,lastmodifieddate`
+  const baseUrl = `https://api.hubapi.com/crm/v3/objects/contacts?limit=${limit}&properties=email,firstname,lastname,company,phone,website,lifecyclestage,hs_lead_status,createdate,lastmodifieddate`
   const afterParam = after ? `&after=${after}` : ''
 
   // Try multiple authentication methods
@@ -97,7 +98,7 @@ async function fetchHubSpotContactsPage(limit: number = 100, after?: string, acc
     })
   }
 
-  let lastError: any
+  let lastError: Error | null = null
 
   for (const config of configs) {
     try {
@@ -117,14 +118,14 @@ async function fetchHubSpotContactsPage(limit: number = 100, after?: string, acc
         lastError = new Error(`HubSpot API error: ${response.status} - ${errorText}`)
       }
     } catch (error) {
-      lastError = error
+      lastError = error instanceof Error ? error : new Error(String(error))
       continue
     }
   }
 
   // If all methods failed, throw the last error
   console.error('Error fetching HubSpot contacts:', lastError)
-  throw lastError
+  throw lastError || new Error('Failed to fetch HubSpot contacts with all authentication methods')
 }
 
 async function analyzeContactsWithAI(contacts: HubSpotContact[]): Promise<string> {

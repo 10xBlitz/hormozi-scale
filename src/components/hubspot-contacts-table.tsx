@@ -21,6 +21,7 @@ interface HubSpotContact {
     phone?: string;
     website?: string;
     lifecyclestage?: string;
+    hs_lead_status?: string;
     createdate?: string;
     lastmodifieddate?: string;
   };
@@ -118,6 +119,38 @@ export function HubSpotContactsTable({
     return labels[normalizedStage] || stage || "Unknown";
   };
 
+  const getLeadStatusColor = (status?: string) => {
+    const colors: Record<string, string> = {
+      'new': 'bg-blue-100 text-blue-800',
+      'open': 'bg-green-100 text-green-800',
+      'in_progress': 'bg-yellow-100 text-yellow-800',
+      'open_deal': 'bg-purple-100 text-purple-800',
+      'unqualified': 'bg-red-100 text-red-800',
+      'attempted_to_contact': 'bg-orange-100 text-orange-800',
+      'connected': 'bg-emerald-100 text-emerald-800',
+      'bad_timing': 'bg-gray-100 text-gray-800',
+    };
+
+    const normalizedStatus = status?.toLowerCase().replace(/\s/g, '_') || 'unknown';
+    return colors[normalizedStatus] || 'bg-gray-100 text-gray-800';
+  };
+
+  const getLeadStatusLabel = (status?: string) => {
+    const labels: Record<string, string> = {
+      'new': 'New',
+      'open': 'Open',
+      'in_progress': 'In Progress',
+      'open_deal': 'Open Deal',
+      'unqualified': 'Unqualified',
+      'attempted_to_contact': 'Attempted to Contact',
+      'connected': 'Connected',
+      'bad_timing': 'Bad Timing',
+    };
+
+    const normalizedStatus = status?.toLowerCase().replace(/\s/g, '_') || 'unknown';
+    return labels[normalizedStatus] || status || 'Unknown';
+  };
+
   const filteredContacts = contacts.filter((contact) => {
     const matchesSearch =
       !searchTerm ||
@@ -136,7 +169,7 @@ export function HubSpotContactsTable({
 
     const matchesLifecycle =
       lifecycleFilter === "all" ||
-      contact.properties.lifecyclestage?.toLowerCase() ===
+      (contact.properties.lifecyclestage || "Unknown").toLowerCase() ===
         lifecycleFilter.toLowerCase();
 
     return matchesSearch && matchesLifecycle;
@@ -144,9 +177,7 @@ export function HubSpotContactsTable({
 
   const uniqueLifecycleStages = Array.from(
     new Set(
-      contacts
-        .map((contact) => contact.properties.lifecyclestage)
-        .filter(Boolean)
+      contacts.map((contact) => contact.properties.lifecyclestage || "Unknown")
     )
   );
 
@@ -232,7 +263,10 @@ export function HubSpotContactsTable({
                 Contact Info
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Stage
+                Lifecycle Stage
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Lead Status
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Created
@@ -245,7 +279,7 @@ export function HubSpotContactsTable({
           <tbody className="bg-white divide-y divide-gray-200">
             {filteredContacts.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
                   {contacts.length === 0
                     ? "No contacts found"
                     : "No contacts match your filters"}
@@ -305,6 +339,17 @@ export function HubSpotContactsTable({
                     >
                       {getLifecycleStageLabel(
                         contact.properties.lifecyclestage
+                      )}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getLeadStatusColor(
+                        contact.properties.hs_lead_status
+                      )}`}
+                    >
+                      {getLeadStatusLabel(
+                        contact.properties.hs_lead_status
                       )}
                     </span>
                   </td>

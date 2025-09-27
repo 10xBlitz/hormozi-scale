@@ -23,6 +23,7 @@ interface HubSpotContact {
     phone?: string;
     website?: string;
     lifecyclestage?: string;
+    hs_lead_status?: string;
     createdate?: string;
     lastmodifieddate?: string;
   };
@@ -40,7 +41,8 @@ interface AnalyticsData {
   contactsCount: number;
   lifecycleDistribution: Record<string, number>;
   recentContacts: number;
-  companiesWithMultipleContacts: number;
+  connectedLeads: number;
+  inProgressLeads: number;
   leadsToday: number;
   leadsThisWeek: number;
   leadsThisMonth: number;
@@ -131,10 +133,16 @@ export function HubSpotAnalytics({ refreshKey }: HubSpotAnalyticsProps) {
           return createDate >= thisMonthStart;
         }).length;
 
-        // Count companies with multiple contacts
-        const companiesWithMultipleContacts = Object.values(
-          companyCounts
-        ).filter((count) => count > 1).length;
+        // Count lead status metrics
+        const connectedLeads = contacts.filter(
+          (contact) =>
+            contact.properties.hs_lead_status?.toLowerCase() === "connected"
+        ).length;
+
+        const inProgressLeads = contacts.filter(
+          (contact) =>
+            contact.properties.hs_lead_status?.toLowerCase() === "in_progress"
+        ).length;
 
         setData({
           totalContacts:
@@ -142,7 +150,8 @@ export function HubSpotAnalytics({ refreshKey }: HubSpotAnalyticsProps) {
           contactsCount: contacts.length,
           lifecycleDistribution,
           recentContacts,
-          companiesWithMultipleContacts,
+          connectedLeads,
+          inProgressLeads,
           leadsToday,
           leadsThisWeek,
           leadsThisMonth,
@@ -167,36 +176,6 @@ export function HubSpotAnalytics({ refreshKey }: HubSpotAnalyticsProps) {
   useEffect(() => {
     fetchAnalytics();
   }, [refreshKey]);
-
-  const getLifecycleStageLabel = (stage: string) => {
-    const labels: Record<string, string> = {
-      subscriber: "Subscriber",
-      lead: "Lead",
-      marketingqualifiedlead: "MQL",
-      salesqualifiedlead: "SQL",
-      opportunity: "Opportunity",
-      customer: "Customer",
-      evangelist: "Evangelist",
-      unknown: "Unknown",
-    };
-
-    return labels[stage.toLowerCase()] || stage;
-  };
-
-  const getLifecycleStageColor = (stage: string) => {
-    const colors: Record<string, string> = {
-      subscriber: "bg-blue-500",
-      lead: "bg-yellow-500",
-      marketingqualifiedlead: "bg-orange-500",
-      salesqualifiedlead: "bg-purple-500",
-      opportunity: "bg-green-500",
-      customer: "bg-emerald-500",
-      evangelist: "bg-pink-500",
-      unknown: "bg-gray-500",
-    };
-
-    return colors[stage.toLowerCase()] || "bg-gray-500";
-  };
 
   if (loading) {
     return (
@@ -257,10 +236,10 @@ export function HubSpotAnalytics({ refreshKey }: HubSpotAnalyticsProps) {
             </div>
             <div className="ml-3">
               <p className="text-sm font-medium text-gray-500">
-                Multi-Contact Companies
+                Connected Leads
               </p>
               <p className="text-2xl font-semibold text-gray-900">
-                {data.companiesWithMultipleContacts}
+                {data.connectedLeads}
               </p>
             </div>
           </div>
@@ -273,10 +252,10 @@ export function HubSpotAnalytics({ refreshKey }: HubSpotAnalyticsProps) {
             </div>
             <div className="ml-3">
               <p className="text-sm font-medium text-gray-500">
-                Lifecycle Stages
+                In Progress Leads
               </p>
               <p className="text-2xl font-semibold text-gray-900">
-                {Object.keys(data.lifecycleDistribution).length}
+                {data.inProgressLeads}
               </p>
             </div>
           </div>
@@ -377,48 +356,6 @@ export function HubSpotAnalytics({ refreshKey }: HubSpotAnalyticsProps) {
               </div>
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* Lifecycle Distribution */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          Lifecycle Stage Distribution
-        </h3>
-        <div className="space-y-4">
-          {Object.entries(data.lifecycleDistribution)
-            .sort(([, a], [, b]) => b - a)
-            .map(([stage, count]) => {
-              const percentage =
-                data.contactsCount > 0 ? (count / data.contactsCount) * 100 : 0;
-              return (
-                <div key={stage} className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <div
-                      className={`w-4 h-4 rounded ${getLifecycleStageColor(
-                        stage
-                      )} mr-3`}
-                    ></div>
-                    <span className="text-sm font-medium text-gray-700">
-                      {getLifecycleStageLabel(stage)}
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <div className="w-32 bg-gray-200 rounded-full h-2">
-                      <div
-                        className={`h-2 rounded-full ${getLifecycleStageColor(
-                          stage
-                        )}`}
-                        style={{ width: `${Math.min(percentage, 100)}%` }}
-                      ></div>
-                    </div>
-                    <span className="text-sm text-gray-600 w-16 text-right">
-                      {count} ({percentage.toFixed(1)}%)
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
         </div>
       </div>
 

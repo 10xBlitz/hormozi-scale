@@ -3,6 +3,7 @@
 import { AppLayout } from "@/components/app-layout";
 import { HubSpotAnalytics } from "@/components/hubspot-analytics";
 import { HubSpotContactsTable } from "@/components/hubspot-contacts-table";
+import { HubSpotChartsDashboard } from "@/components/hubspot-charts-dashboard";
 import { HubSpotAnalyticsSkeleton } from "@/components/hubspot-analytics-skeleton";
 import { HubSpotContactsTableSkeleton } from "@/components/hubspot-contacts-table-skeleton";
 import { useState, useEffect } from "react";
@@ -52,6 +53,11 @@ export default function HubSpotDashboard() {
           <HubSpotAnalyticsSkeleton />
         ) : (
           <HubSpotAnalytics refreshKey={refreshKey} />
+        )}
+
+        {/* Charts Dashboard */}
+        {!isInitialLoading && (
+          <HubSpotChartsDashboard refreshKey={refreshKey} />
         )}
 
         {/* Contacts Table */}
