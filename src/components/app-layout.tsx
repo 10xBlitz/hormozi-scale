@@ -7,15 +7,15 @@ import { useEffect } from 'react'
 
 interface AppLayoutProps {
   children: React.ReactNode
-  currentPage: 'dashboard' | 'company-info'
+  currentPage: 'dashboard' | 'company-info' | 'hubspot'
   stageInfo?: {
     id: number
     name: string
   }
 }
 
-export function AppLayout({ children, currentPage, stageInfo }: AppLayoutProps) {
-  const { user, loading, signOut } = useAuth()
+export function AppLayout({ children, currentPage }: AppLayoutProps) {
+  const { user, loading } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
@@ -49,21 +49,31 @@ export function AppLayout({ children, currentPage, stageInfo }: AppLayoutProps) 
               Scale
             </h1>
             <nav className="flex space-x-4">
-              <a 
-                href="/dashboard" 
+              <a
+                href="/dashboard"
                 className={`font-medium transition-colors ${
-                  currentPage === 'dashboard' 
-                    ? 'text-purple-600' 
+                  currentPage === 'dashboard'
+                    ? 'text-purple-600'
                     : 'text-gray-600 hover:text-purple-600'
                 }`}
               >
                 Dashboard
               </a>
-              <a 
-                href="/company-info" 
+              <a
+                href="/dashboard/hubspot"
                 className={`font-medium transition-colors ${
-                  currentPage === 'company-info' 
-                    ? 'text-purple-600' 
+                  currentPage === 'hubspot'
+                    ? 'text-orange-600'
+                    : 'text-gray-600 hover:text-orange-600'
+                }`}
+              >
+                HubSpot
+              </a>
+              <a
+                href="/company-info"
+                className={`font-medium transition-colors ${
+                  currentPage === 'company-info'
+                    ? 'text-purple-600'
                     : 'text-gray-600 hover:text-purple-600'
                 }`}
               >

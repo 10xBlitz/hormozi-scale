@@ -32,72 +32,6 @@ interface HubSpotContactsResponse {
   }
 }
 
-async function getTotalContactsCount(accessToken?: string): Promise<number> {
-  const apiKey = process.env.HUBSPOT_API_KEY
-
-  if (!apiKey && !accessToken) {
-    throw new Error('HubSpot API key or access token not configured')
-  }
-
-  // Try multiple authentication methods for count endpoint
-  const configs = []
-
-  // Method 1: OAuth Access Token (for Connected Apps)
-  if (accessToken) {
-    configs.push({
-      url: `https://api.hubapi.com/crm/v3/objects/contacts?limit=1&properties=`,
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
-      } as Record<string, string>
-    })
-  }
-
-  // Method 2: Bearer token (for Private Apps)
-  if (apiKey) {
-    configs.push({
-      url: `https://api.hubapi.com/crm/v3/objects/contacts?limit=1&properties=`,
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      } as Record<string, string>
-    })
-
-    // Method 3: Query parameter (legacy API key)
-    configs.push({
-      url: `https://api.hubapi.com/crm/v3/objects/contacts?limit=1&properties=&hapikey=${apiKey}`,
-      headers: {
-        'Content-Type': 'application/json'
-      } as Record<string, string>
-    })
-  }
-
-  let lastError: any
-
-  for (const config of configs) {
-    try {
-      const response = await fetch(config.url, {
-        method: 'GET',
-        headers: config.headers
-      })
-
-      if (response.ok) {
-        const data: HubSpotContactsResponse = await response.json()
-        return data.total || data.results?.length || 0
-      } else {
-        const errorText = await response.text()
-        lastError = new Error(`HubSpot API error: ${response.status} - ${errorText}`)
-      }
-    } catch (error) {
-      lastError = error
-      continue
-    }
-  }
-
-  // If all methods failed, throw the last error
-  console.error('Error fetching HubSpot contacts count:', lastError)
-  throw lastError
-}
 
 async function fetchAllHubSpotContacts(accessToken?: string): Promise<HubSpotContact[]> {
   const apiKey = process.env.HUBSPOT_API_KEY
@@ -113,6 +47,7 @@ async function fetchAllHubSpotContacts(accessToken?: string): Promise<HubSpotCon
     const pageContacts = await fetchHubSpotContactsPage(100, after, accessToken)
     allContacts.push(...pageContacts.contacts)
     after = pageContacts.after
+    console.log(`Fetched ${pageContacts.contacts.length} contacts, total so far: ${allContacts.length}`)
   } while (after)
 
   return allContacts
@@ -256,32 +191,30 @@ Focus on practical, implementable actions that will drive revenue growth.
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const limit = parseInt(searchParams.get('limit') || '100')
     const analyze = searchParams.get('analyze') === 'true'
 
     // Get OAuth access token from cookies
     const accessToken = request.cookies.get('hubspot_access_token')?.value
 
-    // Fetch ALL contacts and total count in parallel
-    const [contacts, totalContacts] = await Promise.all([
-      fetchAllHubSpotContacts(accessToken),
-      getTotalContactsCount(accessToken)
-    ])
+    // Fetch ALL contacts
+    const contacts = await fetchAllHubSpotContacts(accessToken)
+    // Since we're fetching ALL contacts, the total count is just the length
+    const totalContacts = contacts.length
 
     if (analyze) {
-      // Analyze contacts with AI and generate insights
+      // Analyze ALL contacts with AI and generate insights
       const analysis = await analyzeContactsWithAI(contacts)
 
       return NextResponse.json({
         success: true,
         contactsCount: contacts.length,
         totalContactsCount: totalContacts,
-        contacts: contacts.slice(0, 10), // Return first 10 contacts for preview
+        contacts, // Return ALL contacts, not just first 10
         analysis,
         timestamp: new Date().toISOString()
       })
     } else {
-      // Just return the contacts
+      // Return ALL contacts
       return NextResponse.json({
         success: true,
         contactsCount: contacts.length,
