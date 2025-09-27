@@ -24,6 +24,7 @@ interface HubSpotContact {
     hs_lead_status?: string;
     createdate?: string;
     lastmodifieddate?: string;
+    closedate?: string;
   };
   createdAt: string;
   updatedAt: string;
@@ -44,6 +45,10 @@ interface AnalyticsData {
   leadsToday: number;
   leadsThisWeek: number;
   leadsThisMonth: number;
+  salesConversions: number;
+  salesThisMonth: number;
+  salesThisWeek: number;
+  conversionRate: number;
 }
 
 export function HubSpotAnalytics({ refreshKey }: HubSpotAnalyticsProps) {
@@ -137,6 +142,35 @@ export function HubSpotAnalytics({ refreshKey }: HubSpotAnalyticsProps) {
             contact.properties.hs_lead_status?.toLowerCase() === "in_progress"
         ).length;
 
+        // Count sales conversions (leads that became sales qualified leads)
+        const salesConversions = contacts.filter(
+          (contact) =>
+            contact.properties.lifecyclestage?.toLowerCase() === "salesqualifiedlead"
+        ).length;
+
+        // Count sales by time period (this month and week)
+        const salesThisMonth = contacts.filter((contact) => {
+          if (contact.properties.lifecyclestage?.toLowerCase() !== "salesqualifiedlead")
+            return false;
+          const createDate = new Date(contact.properties.createdate || contact.createdAt);
+          return createDate >= thisMonthStart;
+        }).length;
+
+        const salesThisWeek = contacts.filter((contact) => {
+          if (contact.properties.lifecyclestage?.toLowerCase() !== "salesqualifiedlead")
+            return false;
+          const createDate = new Date(contact.properties.createdate || contact.createdAt);
+          return createDate >= thisWeekStart;
+        }).length;
+
+        // Calculate conversion rate (sales qualified leads / total leads)
+        const totalLeadsEver = contacts.filter(
+          (contact) =>
+            contact.properties.lifecyclestage?.toLowerCase() === "lead" ||
+            contact.properties.lifecyclestage?.toLowerCase() === "salesqualifiedlead"
+        ).length;
+        const conversionRate = totalLeadsEver > 0 ? (salesConversions / totalLeadsEver) * 100 : 0;
+
         setData({
           totalContacts:
             responseData.totalContactsCount || responseData.contactsCount || 0,
@@ -148,6 +182,10 @@ export function HubSpotAnalytics({ refreshKey }: HubSpotAnalyticsProps) {
           leadsToday,
           leadsThisWeek,
           leadsThisMonth,
+          salesConversions,
+          salesThisMonth,
+          salesThisWeek,
+          conversionRate,
         });
       } else {
         throw new Error(responseData.error || "Failed to fetch analytics");
@@ -198,7 +236,7 @@ export function HubSpotAnalytics({ refreshKey }: HubSpotAnalyticsProps) {
   return (
     <div className="space-y-6">
       {/* Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center">
             <div className="flex-shrink-0">
@@ -210,6 +248,22 @@ export function HubSpotAnalytics({ refreshKey }: HubSpotAnalyticsProps) {
               </p>
               <p className="text-2xl font-semibold text-gray-900">
                 {data.totalContacts.toLocaleString()}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <Target className="h-8 w-8 text-emerald-600" />
+            </div>
+            <div className="ml-3">
+              <p className="text-sm font-medium text-gray-500">
+                Total Sales
+              </p>
+              <p className="text-2xl font-semibold text-gray-900">
+                {data.salesConversions}
               </p>
             </div>
           </div>
@@ -338,6 +392,91 @@ export function HubSpotAnalytics({ refreshKey }: HubSpotAnalyticsProps) {
                     return Math.round(average * 10) / 10;
                   })()}{" "}
                   leads/week
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Sales Conversion Tracking Section */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="flex items-center mb-6">
+          <Target className="h-5 w-5 text-emerald-600 mr-2" />
+          <h3 className="text-lg font-semibold text-gray-900">
+            Sales Conversion Metrics
+          </h3>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Conversion Rate */}
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-100">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center">
+                <Target className="h-4 w-4 text-blue-600 mr-2" />
+                <span className="text-sm font-medium text-blue-800">
+                  Conversion Rate
+                </span>
+              </div>
+              <div className="text-2xl font-bold text-blue-700">
+                {data.conversionRate.toFixed(1)}%
+              </div>
+            </div>
+            <p className="text-xs text-blue-600">Lead to customer rate</p>
+          </div>
+
+          {/* Sales This Week */}
+          <div className="bg-gradient-to-br from-purple-50 to-violet-50 rounded-lg p-4 border border-purple-100">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center">
+                <CalendarDays className="h-4 w-4 text-purple-600 mr-2" />
+                <span className="text-sm font-medium text-purple-800">
+                  This Week
+                </span>
+              </div>
+              <div className="text-2xl font-bold text-purple-700">
+                {data.salesThisWeek}
+              </div>
+            </div>
+            <p className="text-xs text-purple-600">Sales closed this week</p>
+          </div>
+
+          {/* Sales This Month */}
+          <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-lg p-4 border border-orange-100">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center">
+                <Calendar className="h-4 w-4 text-orange-600 mr-2" />
+                <span className="text-sm font-medium text-orange-800">
+                  This Month
+                </span>
+              </div>
+              <div className="text-2xl font-bold text-orange-700">
+                {data.salesThisMonth}
+              </div>
+            </div>
+            <p className="text-xs text-orange-600">Sales closed this month</p>
+          </div>
+        </div>
+
+        {/* Sales Performance Insights */}
+        <div className="mt-4 pt-4 border-t border-gray-100">
+          <div className="flex justify-between items-center text-sm text-gray-600">
+            <div className="flex items-center gap-8">
+              <div>
+                <span>Average Weekly Sales: </span>
+                <span className="font-medium text-gray-900">
+                  {(() => {
+                    const weeksInMonth = Math.ceil(new Date().getDate() / 7);
+                    const avgWeekly = data.salesThisMonth > 0 ? data.salesThisMonth / weeksInMonth : 0;
+                    return avgWeekly.toFixed(1);
+                  })()}{" "}
+                  sales/week
+                </span>
+              </div>
+              <div>
+                <span>Monthly Goal Progress: </span>
+                <span className="font-medium text-gray-900">
+                  {data.salesThisMonth} / {Math.max(10, data.salesThisMonth)} sales
                 </span>
               </div>
             </div>

@@ -15,6 +15,7 @@ interface HubSpotContact {
     hs_lead_status?: string
     createdate?: string
     lastmodifieddate?: string
+    closedate?: string
     [key: string]: string | undefined
   }
   createdAt: string
@@ -61,8 +62,8 @@ async function fetchHubSpotContactsPage(limit: number = 100, after?: string, acc
     throw new Error('HubSpot API key or access token not configured')
   }
 
-  // Build URL with pagination
-  const baseUrl = `https://api.hubapi.com/crm/v3/objects/contacts?limit=${limit}&properties=email,firstname,lastname,company,phone,website,lifecyclestage,hs_lead_status,createdate,lastmodifieddate`
+  // Build URL with pagination - added closedate for sales conversion tracking
+  const baseUrl = `https://api.hubapi.com/crm/v3/objects/contacts?limit=${limit}&properties=email,firstname,lastname,company,phone,website,lifecyclestage,hs_lead_status,createdate,lastmodifieddate,closedate`
   const afterParam = after ? `&after=${after}` : ''
 
   // Try multiple authentication methods
