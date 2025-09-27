@@ -100,15 +100,37 @@ export const UserStoreProvider = ({ children }: { children: ReactNode }) => {
           };
         }
       } catch (e) {
-        console.error("Unexpected error during store initialization:", e);
+        console.error("Unexpected error during store initialization:", {
+          error: e,
+          message: e instanceof Error ? e.message : 'Unknown error',
+          stack: e instanceof Error ? e.stack : undefined,
+          type: typeof e,
+        });
       } finally {
         if (mounted) {
-          if (!storeRef.current) {
-            storeRef.current = createUserStore(initialDataForStore);
-          } else {
-            storeRef.current.getState().updateUser(initialDataForStore.user);
+          try {
+            if (!storeRef.current) {
+              storeRef.current = createUserStore(initialDataForStore);
+            } else {
+              storeRef.current.getState().updateUser(initialDataForStore.user);
+            }
+            setIsStoreInitialized(true);
+          } catch (storeError) {
+            console.error("Error creating or updating user store:", {
+              error: storeError,
+              message: storeError instanceof Error ? storeError.message : 'Unknown store error',
+              initialData: initialDataForStore,
+            });
+            // Fallback to create store with default data
+            if (!storeRef.current) {
+              try {
+                storeRef.current = createUserStore({ user: defaultUserState });
+                setIsStoreInitialized(true);
+              } catch (fallbackError) {
+                console.error("Even fallback store creation failed:", fallbackError);
+              }
+            }
           }
-          setIsStoreInitialized(true);
         }
       }
     };

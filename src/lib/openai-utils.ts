@@ -13,7 +13,15 @@ export async function callOpenAI(
   messages: OpenAIMessage[],
   options: OpenAIOptions = {}
 ): Promise<string> {
-  const response = await fetch('/api/openai', {
+  // Use absolute URL for server-side calls, relative for client-side
+  const baseUrl = typeof window === 'undefined'
+    ? process.env.NEXTAUTH_URL || process.env.VERCEL_URL || 'http://localhost:3000'
+    : ''
+  const apiUrl = `${baseUrl}/api/openai`
+
+  console.log('Making request to:', apiUrl)
+
+  const response = await fetch(apiUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -26,12 +34,16 @@ export async function callOpenAI(
     }),
   })
 
+  console.log('Response status:', response.status)
+
   if (!response.ok) {
-    const errorData = await response.json()
+    const errorData = await response.json().catch(() => ({ error: 'Failed to parse error response' }))
+    console.error('OpenAI API error response:', errorData)
     throw new Error(errorData.error || 'Failed to get response from OpenAI')
   }
 
   const data = await response.json()
+  console.log('OpenAI response received successfully')
   return data.content
 }
 

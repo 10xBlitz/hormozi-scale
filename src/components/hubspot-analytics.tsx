@@ -5,12 +5,10 @@ import {
   Users,
   Calendar,
   Zap,
-  Brain,
-  Loader2,
-  RefreshCw,
   Target,
   Clock,
   CalendarDays,
+  Loader2,
 } from "lucide-react";
 
 interface HubSpotContact {
@@ -46,24 +44,19 @@ interface AnalyticsData {
   leadsToday: number;
   leadsThisWeek: number;
   leadsThisMonth: number;
-  analysis?: string;
 }
 
 export function HubSpotAnalytics({ refreshKey }: HubSpotAnalyticsProps) {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [analyzingWithAI, setAnalyzingWithAI] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchAnalytics = async (withAnalysis = false) => {
+  const fetchAnalytics = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const url = withAnalysis
-        ? "/api/hubspot/contacts?analyze=true"
-        : "/api/hubspot/contacts";
-      const response = await fetch(url);
+      const response = await fetch("/api/hubspot/contacts");
       const responseData = await response.json();
 
       if (!response.ok) {
@@ -155,7 +148,6 @@ export function HubSpotAnalytics({ refreshKey }: HubSpotAnalyticsProps) {
           leadsToday,
           leadsThisWeek,
           leadsThisMonth,
-          analysis: responseData.analysis,
         });
       } else {
         throw new Error(responseData.error || "Failed to fetch analytics");
@@ -164,13 +156,7 @@ export function HubSpotAnalytics({ refreshKey }: HubSpotAnalyticsProps) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setLoading(false);
-      setAnalyzingWithAI(false);
     }
-  };
-
-  const generateAIAnalysis = async () => {
-    setAnalyzingWithAI(true);
-    await fetchAnalytics(true);
   };
 
   useEffect(() => {
@@ -357,55 +343,6 @@ export function HubSpotAnalytics({ refreshKey }: HubSpotAnalyticsProps) {
             </div>
           </div>
         </div>
-      </div>
-
-      {/* AI Analysis Section */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center">
-            <Brain className="h-5 w-5 text-purple-600 mr-2" />
-            <h3 className="text-lg font-semibold text-gray-900">
-              AI Business Insights
-            </h3>
-          </div>
-          <button
-            onClick={generateAIAnalysis}
-            disabled={analyzingWithAI}
-            className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {analyzingWithAI ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                Analyzing...
-              </>
-            ) : (
-              <>
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Generate Analysis
-              </>
-            )}
-          </button>
-        </div>
-
-        {data.analysis ? (
-          <div className="prose max-w-none">
-            <div className="bg-purple-50 rounded-lg p-4 text-sm text-gray-700 whitespace-pre-wrap">
-              {data.analysis}
-            </div>
-          </div>
-        ) : (
-          <div className="text-center py-8 text-gray-500">
-            <Brain className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-            <p>
-              Click &quot;Generate Analysis&quot; to get AI-powered insights
-              about your HubSpot contacts
-            </p>
-            <p className="text-xs mt-2">
-              Analysis includes trends, recommendations, and growth
-              opportunities
-            </p>
-          </div>
-        )}
       </div>
     </div>
   );

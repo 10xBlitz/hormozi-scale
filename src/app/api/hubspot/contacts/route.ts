@@ -1,5 +1,5 @@
-import { callOpenAI } from '@/lib/openai-utils'
 import { NextRequest, NextResponse } from 'next/server'
+import OpenAI from 'openai'
 
 // HubSpot Contact interface
 interface HubSpotContact {
@@ -168,23 +168,42 @@ Focus on practical, implementable actions that will drive revenue growth.
 `
 
   try {
-    const analysis = await callOpenAI([
-      {
-        role: 'system',
-        content: 'You are a CRM expert and growth strategist. Analyze HubSpot contact data and provide actionable business insights and recommendations.'
-      },
-      {
-        role: 'user',
-        content: analysisPrompt
-      }
-    ], {
-      model: 'gpt-4o-mini',
-      max_tokens: 2000
+    console.log('Starting AI analysis...')
+
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error('OpenAI API key not configured')
+    }
+
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
     })
 
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a CRM expert and growth strategist. Analyze HubSpot contact data and provide actionable business insights and recommendations.'
+        },
+        {
+          role: 'user',
+          content: analysisPrompt
+        }
+      ],
+      max_tokens: 2000,
+      temperature: 0.7
+    })
+
+    const analysis = completion.choices[0]?.message?.content || 'No analysis generated'
+    console.log('AI analysis completed successfully')
     return analysis
   } catch (error) {
     console.error('Error analyzing contacts with AI:', error)
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      cause: error instanceof Error ? error.cause : undefined
+    })
     return `Error analyzing contacts: ${error instanceof Error ? error.message : 'Unknown error'}`
   }
 }
